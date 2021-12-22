@@ -6,7 +6,7 @@ import msvcrt
 import sys
 from socket import *
 
-TEAMNAME = 'CM'
+TEAMNAME = 'IN'
 TXT_ENCODING = 'utf-8'
 NUM_ENCODING = "little"
 CLIENT_STARTED_MSG = 'Client started, listening for offer requests...'
@@ -65,7 +65,7 @@ def gamemode(tcp):
     while data != "end":
         read(tcp)
         if msvcrt.kbhit():
-            tcp.send(msvcrt.getch())
+            tcp.send(msvcrt.getwch())
     return 0
 
 
@@ -82,7 +82,6 @@ def theloop():
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    #theloop()
-    msvcrt.putch(b'\x77')
+    theloop()
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
