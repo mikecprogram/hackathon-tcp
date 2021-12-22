@@ -7,10 +7,26 @@ from socket import *
 import time
 
 
+
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def getQA():
-    var = [("How much is 2 + 2?", "4"), ("How much is 2 + 3?", "5")]
-    value = randint(0, len(var))
-    return var[0]
+    var = [("How much is 2 + 2?", "4"), ("How much is 2 + 3?", "5"),
+           ("How much is square root of 9?", "3"),("How much is square root of 81?", "9"),
+           ("How much blonde women you need to change a light bolb", "1"),
+           ("How much is 2 + 2 - 1?", "3"),("How much is 9 square of 0?", "1")]
+    value = randint(0, len(var) - 1)
+    return var[value]
 
 
 def opentcpcon():
@@ -54,12 +70,10 @@ def MODE_OFFER():
                     conn1 = conn
                     print("player 1 connected")
                     name1 = str(get_input_from_player(conn1), 'utf-8')
-                    print(name1)
                 elif conn2 == 0:
                     conn2 = conn
                     print("player 2 connected")
                     name2 = str(get_input_from_player(conn2), 'utf-8')
-                    print(name2)
                     s_udp.close()
                     tcp_1.close()
                     break
@@ -124,6 +138,5 @@ def gamemode(t1, t2, name1, name2, problem, ans):
 if __name__ == '__main__':
     try:
         MODE_OFFER()
-
     except Exception as e:
         print(e)

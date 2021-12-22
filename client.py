@@ -19,8 +19,20 @@ BUFFER_SIZE = 1024
 UDP_PORT = 13117
 
 
+class bcolors:
+    HEADER = '\033[95m'
+    OKBLUE = '\033[94m'
+    OKCYAN = '\033[96m'
+    OKGREEN = '\033[92m'
+    WARNING = '\033[93m'
+    FAIL = '\033[91m'
+    ENDC = '\033[0m'
+    BOLD = '\033[1m'
+    UNDERLINE = '\033[4m'
+
+
 def looking_for_server_state():
-    print(CLIENT_STARTED_MSG)
+    print(bcolors.OKBLUE+CLIENT_STARTED_MSG)
     try:
         s = socket(AF_INET, SOCK_DGRAM)
         s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
@@ -28,7 +40,7 @@ def looking_for_server_state():
         m = s.recvfrom(BUFFER_SIZE)
         receivedbytes = m[0]
         serverip = m[1][0]
-        if receivedbytes[0:5] ==  b'\xab\xcd\xdc\xba\x02':
+        if receivedbytes[0:5] == b'\xab\xcd\xdc\xba\x02':
             receivedport = int.from_bytes(receivedbytes[5:7], NUM_ENCODING)
             print(RCVD_OFFER_MSG.format(serverip))
             return serverip, receivedport
@@ -50,18 +62,20 @@ def connect_to_server_state(serverip, port):
         print(e)
     return None
 
+
 def read(t):
     try:
         data = t.recv(BUFFER_SIZE)
-        if data!= "":
+        if data != "":
             data = str(data, TXT_ENCODING)
             print(data)
     except:
         pass
 
+
 def gamemode(tcp):
     data = ""
-    print("connected!")
+    print(bcolors.BOLD+ "connected!")
     while data != "end":
         read(tcp)
         if msvcrt.kbhit():
@@ -73,7 +87,7 @@ def theloop():
     (serverip, port) = looking_for_server_state()
     tcpsocket = connect_to_server_state(serverip, port)
     if tcpsocket == None:
-        print(FAILED_TO_CONNECT_MSG)
+        print(bcolors.WARNING+FAILED_TO_CONNECT_MSG)
         theloop()
     else:
         tcpsocket.send(bytes(TEAMNAME, TXT_ENCODING))
