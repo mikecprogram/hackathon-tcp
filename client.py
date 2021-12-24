@@ -32,7 +32,7 @@ class bcolors:
 
 
 def looking_for_server_state():
-    print(bcolors.OKBLUE+CLIENT_STARTED_MSG)
+    print(bcolors.OKBLUE + CLIENT_STARTED_MSG + bcolors.ENDC)
     try:
         s = socket(AF_INET, SOCK_DGRAM)
         s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
@@ -75,7 +75,7 @@ def read(t):
 
 def gamemode(tcp):
     data = ""
-    print(bcolors.BOLD+ "connected!")
+    print("connected!")
     while data != "end":
         read(tcp)
         if msvcrt.kbhit():
@@ -87,7 +87,7 @@ def theloop():
     (serverip, port) = looking_for_server_state()
     tcpsocket = connect_to_server_state(serverip, port)
     if tcpsocket == None:
-        print(bcolors.WARNING+FAILED_TO_CONNECT_MSG)
+        print(bcolors.WARNING + FAILED_TO_CONNECT_MSG)
         theloop()
     else:
         tcpsocket.send(bytes(TEAMNAME, TXT_ENCODING))
