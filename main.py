@@ -2,10 +2,14 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
+import threading
 from random import randint
 from socket import *
 import time
+from _thread import *
+from threading import *
 
+USERS = 0
 
 
 class bcolors:
@@ -20,13 +24,50 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 
+class ClientThread(Thread):
+
+    def __init__(self, ip, port):
+        Thread.__init__(self)
+        self.ip = ip
+        self.port = port
+        print
+        "[+] New server socket thread started for " + ip + ":" + str(port)
+
+    def run(self):
+        while True:
+            data = conn.recv(2048)
+            print
+            "Server received data:", data
+            MESSAGE = raw_input("Multithreaded Python server : Enter Response from Server/Enter exit:")
+            if MESSAGE == 'exit':
+                break
+            conn.send(MESSAGE)  # echo
+
+    def getName(self, client):
+        size = 1024
+        while True:
+            try:
+                name = str(get_input_from_player(client), 'utf-8')
+                if name:
+                    return name
+                else:
+                    raise error('Client disconnected')
+            except:
+                client.close()
+                return False
+
+
 def getQA():
     var = [("How much is 2 + 2?", "4"), ("How much is 2 + 3?", "5"),
-           ("How much is square root of 9?", "3"),("How much is square root of 81?", "9"),
+           ("How much is square root of 9?", "3"), ("How much is square root of 81?", "9"),
            ("How much blonde women you need to change a light bolb", "1"),
-           ("How much is 2 + 2 - 1?", "3"),("How much is 9 square of 0?", "1")]
+           ("How much is 2 + 2 - 1?", "3"), ("How much is 9 square of 0?", "1")]
     value = randint(0, len(var) - 1)
     return var[value]
+
+
+def threadtcp(tcpsock):
+    return tcpsock + 1
 
 
 def opentcpcon():
@@ -42,15 +83,19 @@ def opentcpcon():
         return -1, -1
 
 
+def sendmessagebothtcp(t1, t2, message):
+    t1.send(bytes(message, 'utf-8'))
+    t2.send(bytes(message, 'utf-8'))
+
+
 def MODE_OFFER():
     UDP_IP = '127.0.0.4'
     UDP_PORT = 13117
     MESSAGE = 'Server started, listening on IP address'
 
     port1 = -1
-    tcp_1 = socket(AF_INET, SOCK_STREAM)
     while port1 == -1:
-        (port1, tcp_1) = opentcpcon()
+        port1 = thread1.sock.getsockname()[1]
     conn1 = 0
     conn2 = 0
     name1 = 'n1'
@@ -65,17 +110,19 @@ def MODE_OFFER():
         while True:
             s_udp.sendto(SEND_PACKET, ('255.255.255.255', UDP_PORT))
             try:
-                (conn, addr) = tcp_1.accept()
                 if conn1 == 0:
-                    conn1 = conn
-                    print("player 1 connected")
-                    name1 = str(get_input_from_player(conn1), 'utf-8')
+                    thread1.listen(1)
+                    conn1 = thread1.sock
+                    print('player 1 connected')
+                    name1 = thread1.getName(conn1)
+
                 elif conn2 == 0:
-                    conn2 = conn
+                    thread2 = ThreadedServer('', UDP_PORT)
+                    thread2.listen(1)
+                    conn2 = thread2.sock
                     print("player 2 connected")
-                    name2 = str(get_input_from_player(conn2), 'utf-8')
+                    name1 = thread2.getName(conn2)
                     s_udp.close()
-                    tcp_1.close()
                     break
             except Exception as e:
                 time.sleep(1)
@@ -99,20 +146,13 @@ def gamemode(t1, t2, name1, name2, problem, ans):
     welcome_message = f'Welcome to Quick Maths.  \nPlayer 1: {name1} \nPlayer 2: {name2} \n== \nPlease answer the ' \
                       f'following question as fast as you can: '
     problem = welcome_message + " " + problem
-    t1.send(bytes(problem, 'utf-8'))
-    t2.send(bytes(problem, 'utf-8'))
+    sendmessagebothtcp(t1, t2, problem)
     t = time.time()
     t1.setblocking(0)
     t2.setblocking(0)
     while time.time() - t < 10:
         p1 = get_input_from_player(t1)
         p2 = get_input_from_player(t2)
-        if p1 != "":
-            p1 = str(p1, 'utf-8')
-            print(p1)
-        if p2 != "":
-            p2 = str(p2, 'utf-8')
-            print(p2)
         if p1 == ans:
             winner = name1
             break
@@ -126,8 +166,7 @@ def gamemode(t1, t2, name1, name2, problem, ans):
             winner = name1
             break
     end_message = f'Game over! \nThe correct answer was {ans}! \nCongratulations to the winner: {winner}'
-    t1.send(bytes(end_message, 'utf-8'))
-    t2.send(bytes(end_message, 'utf-8'))
+    sendmessagebothtcp(t1, t2, end_message)
     t1.close()
     t2.close()
     print("“Game over, sending out offer\nrequests...”")

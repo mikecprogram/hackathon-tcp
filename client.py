@@ -75,7 +75,7 @@ def read(t):
 
 def gamemode(tcp):
     data = ""
-    print("connected!")
+    print(bcolors.OKGREEN+'connected!'+ bcolors.ENDC)
     while data != "end":
         read(tcp)
         if msvcrt.kbhit():
@@ -87,7 +87,7 @@ def theloop():
     (serverip, port) = looking_for_server_state()
     tcpsocket = connect_to_server_state(serverip, port)
     if tcpsocket == None:
-        print(bcolors.WARNING + FAILED_TO_CONNECT_MSG)
+        print(bcolors.WARNING + FAILED_TO_CONNECT_MSG+ bcolors.ENDC)
         theloop()
     else:
         tcpsocket.send(bytes(TEAMNAME, TXT_ENCODING))
