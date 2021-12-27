@@ -41,7 +41,7 @@ def opentcpcon():
         print(e)
         return -1, -1
 
-
+#use struct.pack(strFormat,0xabcddbca,0x02,
 def MODE_OFFER():
     UDP_IP = '127.0.0.4'
     UDP_PORT = 13117

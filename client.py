@@ -2,8 +2,9 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-import msvcrt
-import sys
+
+import threading
+import getch
 from socket import *
 
 TEAMNAME = 'IN'
@@ -62,25 +63,23 @@ def connect_to_server_state(serverip, port):
         print(e)
     return None
 
-
-def read(t):
+def multi_gamemode_senddata(sock):
     try:
-        data = t.recv(BUFFER_SIZE)
+        data = getch.getch()
+        sock.send(data)
+    except Exception as e:
+        print(e)
+    pass
+
+def multi_gamemode_downloaddata(sock):
+    try:
+        data = sock.recv(BUFFER_SIZE)
         if data != "":
             data = str(data, TXT_ENCODING)
             print(data)
-    except:
-        pass
-
-
-def gamemode(tcp):
-    data = ""
-    print("connected!")
-    while data != "end":
-        read(tcp)
-        if msvcrt.kbhit():
-            tcp.send(msvcrt.getwch())
-    return 0
+    except Exception as e:
+        print(e)
+    pass
 
 
 def theloop():
@@ -91,7 +90,13 @@ def theloop():
         theloop()
     else:
         tcpsocket.send(bytes(TEAMNAME, TXT_ENCODING))
-        gamemode(tcpsocket)
+        downloading = threading.Thread(target=multi_gamemode_downloaddata, args=(tcpsocket,))
+        uploading = threading.Thread(target=multi_gamemode_senddata, args=(tcpsocket,))
+        downloading.start()
+        uploading.start()
+        downloading.join()
+        uploading.join()
+        theloop()
 
 
 # Press the green button in the gutter to run the script.
