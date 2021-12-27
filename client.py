@@ -4,6 +4,7 @@
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
 import threading
+import struct
 import getch
 from socket import *
 
@@ -14,7 +15,7 @@ CLIENT_STARTED_MSG = 'Client started, listening for offer requests...'
 RCVD_OFFER_MSG = 'Received offer from {},\nattempting to connect...'
 IMPOSTER_OFFER_MSG = 'An imposter server ({})tried to connect, but it had failed.'
 FAILED_TO_CONNECT_MSG = 'Failed to connect'
-MAGIC_COOKIE = b'\xab\xcd\xdc\xba'
+MAGIC_COOKIE = 0xabcddcba
 MSG_TYPE_OFFER = b'\x02'
 BUFFER_SIZE = 1024
 UDP_PORT = 13117
@@ -40,12 +41,14 @@ def looking_for_server_state():
         s.bind(('', UDP_PORT))
         m = s.recvfrom(BUFFER_SIZE)
         receivedbytes = m[0]
+        cookie, op, port = struct.unpack('lci', receivedbytes)
         serverip = m[1][0]
-        if receivedbytes[0:5] == b'\xab\xcd\xdc\xba\x02':
-            receivedport = int.from_bytes(receivedbytes[5:7], NUM_ENCODING)
+        if (cookie == MAGIC_COOKIE) & (op == MSG_TYPE_OFFER):
             print(RCVD_OFFER_MSG.format(serverip))
-            return serverip, receivedport
+            return serverip, port
         else:
+            hexadecimal_string = receivedbytes.hex()
+            print(hexadecimal_string)
             print(IMPOSTER_OFFER_MSG.format(serverip))
             return looking_for_server_state()
     except Exception as e:
@@ -63,6 +66,7 @@ def connect_to_server_state(serverip, port):
         print(e)
     return None
 
+
 def multi_gamemode_senddata(sock):
     try:
         data = getch.getch()
@@ -70,6 +74,7 @@ def multi_gamemode_senddata(sock):
     except Exception as e:
         print(e)
     pass
+
 
 def multi_gamemode_downloaddata(sock):
     try:
