@@ -84,7 +84,7 @@ def opentcpcon():
         print(e)
         return -1, -1
 
-
+#use struct.pack(strFormat,0xabcddbca,0x02,
 def MODE_OFFER():
     global threads
     threads = []

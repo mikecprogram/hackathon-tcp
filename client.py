@@ -2,8 +2,10 @@
 
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-import msvcrt
-import sys
+
+import threading
+import struct
+import getch
 from socket import *
 
 TEAMNAME = 'NOW'
@@ -13,7 +15,7 @@ CLIENT_STARTED_MSG = 'Client started, listening for offer requests...'
 RCVD_OFFER_MSG = 'Received offer from {},\nattempting to connect...'
 IMPOSTER_OFFER_MSG = 'An imposter server ({})tried to connect, but it had failed.'
 FAILED_TO_CONNECT_MSG = 'Failed to connect'
-MAGIC_COOKIE = b'\xab\xcd\xdc\xba'
+MAGIC_COOKIE = 0xabcddcba
 MSG_TYPE_OFFER = b'\x02'
 BUFFER_SIZE = 1024
 UDP_PORT = 13117
@@ -39,12 +41,14 @@ def looking_for_server_state():
         s.bind(('', UDP_PORT))
         m = s.recvfrom(BUFFER_SIZE)
         receivedbytes = m[0]
+        cookie, op, port = struct.unpack('lci', receivedbytes)
         serverip = m[1][0]
-        if receivedbytes[0:5] == b'\xab\xcd\xdc\xba\x02':
-            receivedport = int.from_bytes(receivedbytes[5:7], NUM_ENCODING)
+        if (cookie == MAGIC_COOKIE) & (op == MSG_TYPE_OFFER):
             print(RCVD_OFFER_MSG.format(serverip))
-            return serverip, receivedport
+            return serverip, port
         else:
+            hexadecimal_string = receivedbytes.hex()
+            print(hexadecimal_string)
             print(IMPOSTER_OFFER_MSG.format(serverip))
             return looking_for_server_state()
     except Exception as e:
@@ -63,24 +67,24 @@ def connect_to_server_state(serverip, port):
     return None
 
 
-def read(t):
+def multi_gamemode_senddata(sock):
     try:
-        data = t.recv(BUFFER_SIZE)
+        data = getch.getch()
+        sock.send(data)
+    except Exception as e:
+        print(e)
+    pass
+
+
+def multi_gamemode_downloaddata(sock):
+    try:
+        data = sock.recv(BUFFER_SIZE)
         if data != "":
             data = str(data, TXT_ENCODING)
             print(data)
-    except:
-        pass
-
-
-def gamemode(tcp):
-    data = ""
-    print("connected!")
-    while data != "end":
-        read(tcp)
-        if msvcrt.kbhit():
-            tcp.send(msvcrt.getwch())
-    return 0
+    except Exception as e:
+        print(e)
+    pass
 
 
 def theloop():
@@ -91,7 +95,13 @@ def theloop():
         theloop()
     else:
         tcpsocket.send(bytes(TEAMNAME, TXT_ENCODING))
-        gamemode(tcpsocket)
+        downloading = threading.Thread(target=multi_gamemode_downloaddata, args=(tcpsocket,))
+        uploading = threading.Thread(target=multi_gamemode_senddata, args=(tcpsocket,))
+        downloading.start()
+        uploading.start()
+        downloading.join()
+        uploading.join()
+        theloop()
 
 
 # Press the green button in the gutter to run the script.
