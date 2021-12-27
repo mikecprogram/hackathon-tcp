@@ -6,7 +6,7 @@ import msvcrt
 import sys
 from socket import *
 
-TEAMNAME = 'IN'
+TEAMNAME = 'NOW'
 TXT_ENCODING = 'utf-8'
 NUM_ENCODING = "little"
 CLIENT_STARTED_MSG = 'Client started, listening for offer requests...'
