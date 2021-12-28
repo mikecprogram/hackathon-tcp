@@ -7,7 +7,6 @@ from random import randint
 from socket import *
 import time
 import struct
-from threading import Thread
 
 threads = []
 records = []
@@ -48,21 +47,25 @@ class ClientThread(threading.Thread):
 
 def thread_function(tcp_1):
     global threads
-    tcp_1.setblocking(1)
-    while len(threads) < 2:
-        try:
-            tcp_1.listen(2)
-            (conn, addr) = tcp_1.accept()
-            thread = ClientThread(conn, addr)
-            thread.start()
-            threads.append(thread)
-        except Exception as ex:
-            print(ex)
-            time.sleep(1)
-            for thread in threads:
-                thread.socket.close()
-                thread.join()
-            threads = []
+    try:
+        tcp_1.setblocking(1)
+        tcp_1.listen(2)
+        (conn, addr) = tcp_1.accept()
+        while len(threads) < 2:
+            try:
+                thread = ClientThread(conn, addr)
+                thread.start()
+                threads.append(thread)
+            except Exception as ex:
+                print(ex)
+                time.sleep(1)
+                for thread in threads:
+                    thread.socket.close()
+                    if thread.is_alive():
+                        thread.join()
+                threads = []
+    except Exception as e:
+        print(e)
     return threads
 
 
@@ -84,7 +87,7 @@ def opentcpcon():
         print(e)
         return -1, -1
 
-#use struct.pack(strFormat,0xabcddbca,0x02,
+
 def MODE_OFFER():
     global threads
     threads = []
@@ -94,28 +97,30 @@ def MODE_OFFER():
     port1 = tcp_1.getsockname()[1]
     x = threading.Thread(target=thread_function, args=(tcp_1,))
     s_udp = socket(AF_INET, SOCK_DGRAM)
+    portTOSend = struct.pack('c', b'\x02')
+
     try:
         print(bcolors.HEADER + f'Server started, listening on IP address {UDP_IP}' + bcolors.ENDC)
         s_udp.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
-        PORT_TO_SEND = port1.to_bytes(2, 'little')
-        SEND_PACKET = struct.pack('lci', 0xabcddcba, b'\x02', PORT_TO_SEND)
+        print('here1')
+        print('here2')
         x.start()
         while len(threads) < 2:
-            s_udp.sendto(SEND_PACKET, ('255.255.255.255', UDP_PORT))
+            s_udp.sendto(portTOSend, ('255.255.255.255', UDP_PORT))
             time.sleep(0.5)
         s_udp.close()
         tcp_1.close()
-        x.join()
+        if x.is_alive():
+            x.join()
     except Exception as e:
         print(e)
         tcp_1.close()
-        x.join()
+        if x.is_alive():
+            x.join()
+        s_udp.close()
         threads = []
-        time.sleep(0.5)
-        tcp_1 = opentcpcon()
-        port1 = tcp_1.getsockname()[1]
-        x = threading.Thread(target=thread_function, args=(tcp_1,))
-        x.start()
+        time.sleep(2)
+        MODE_OFFER()
 
     (q, a) = getQA()
     gamemode(threads[0], threads[1], q, a)
@@ -190,7 +195,7 @@ def gamemode(t1, t2, problem, ans):
         t1.join()
         t2.socket.close()
         t2.join()
-    if winner is not 'draw':
+    if winner != 'draw':
         foundwin = False
         for r in records:
             if r[0] is winner:
