@@ -3,10 +3,13 @@
 # Press Shift+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
 
+from multiprocessing import *
 import threading
 import struct
 import getch
 from socket import *
+import time
+import select
 
 TEAMNAME = 'IN'
 TXT_ENCODING = 'utf-8'
@@ -67,10 +70,13 @@ def connect_to_server_state(serverip, port):
     return None
 
 
-def multi_gamemode_senddata(sock):
+def multi_gamemode_senddata(sock,pipe):
     try:
-        data = getch.getch()
-        sock.send(data)
+        i, _, _ = select.select( [pipe], [], [])
+        if(i):
+            data = pipe.recv()
+            print(data)
+            sock.send(data.encode(TXT_ENCODING))
     except Exception as e:
         print(e)
     pass
@@ -82,30 +88,47 @@ def multi_gamemode_downloaddata(sock):
         if data != "":
             data = str(data, TXT_ENCODING)
             print(data)
+        data = sock.recv(BUFFER_SIZE)
+        if data != "":
+            data = str(data, TXT_ENCODING)
+            print(data)
     except Exception as e:
         print(e)
     pass
 
 
-def theloop():
+def theloop(pipe):
     (serverip, port) = looking_for_server_state()
+    print(serverip)
+    print(port)
     tcpsocket = connect_to_server_state(serverip, port)
     if tcpsocket == None:
-        print(bcolors.WARNING + FAILED_TO_CONNECT_MSG)
-        theloop()
+        print(bcolors.WARNING + FAILED_TO_CONNECT_MSG+bcolors.ENDC)
+        theloop(pipe)
     else:
         tcpsocket.send(bytes(TEAMNAME, TXT_ENCODING))
-        downloading = threading.Thread(target=multi_gamemode_downloaddata, args=(tcpsocket,))
-        uploading = threading.Thread(target=multi_gamemode_senddata, args=(tcpsocket,))
+        downloading = Process(target=multi_gamemode_downloaddata, args=(tcpsocket,))
+        uploading = Process(target=multi_gamemode_senddata, args=(tcpsocket,pipe,))
         downloading.start()
         uploading.start()
         downloading.join()
-        uploading.join()
-        theloop()
+        uploading.kill()
+        theloop(pipe)
 
+def getchfun(pipe):
+    try:
+        while True:
+            data = getch.getch()
+            pipe.send(data)
+    except Exception as e:
+        print(e)
+    pass
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    theloop()
+    r1, w1 = Pipe(duplex=False)
+    getchproc = Process(target=getchfun,args=(w1,))
+    getchproc.start()
+    theloop(r1)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
