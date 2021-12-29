@@ -47,12 +47,12 @@ def looking_for_server_state():
         cookie, op, port = struct.unpack('lci', receivedbytes)
         serverip = m[1][0]
         if (cookie == MAGIC_COOKIE) & (op == MSG_TYPE_OFFER):
-            print(RCVD_OFFER_MSG.format(serverip))
+            print(bcolors.OKGREEN+RCVD_OFFER_MSG.format(serverip)+bcolors.ENDC)
             return serverip, port
         else:
             hexadecimal_string = receivedbytes.hex()
             print(hexadecimal_string)
-            print(IMPOSTER_OFFER_MSG.format(serverip))
+            print(bcolors.FAIL+IMPOSTER_OFFER_MSG.format(serverip)+bcolors.ENDC)
             return looking_for_server_state()
     except Exception as e:
         print(e)
@@ -75,7 +75,7 @@ def multi_gamemode_senddata(sock,pipe):
         i, _, _ = select.select( [pipe], [], [])
         if(i):
             data = pipe.recv()
-            print(data)
+            print(bcolors.BOLD+data+bcolors.ENDC)
             sock.send(data.encode(TXT_ENCODING))
     except Exception as e:
         print(e)
@@ -87,11 +87,11 @@ def multi_gamemode_downloaddata(sock):
         data = sock.recv(BUFFER_SIZE)
         if data != "":
             data = str(data, TXT_ENCODING)
-            print(data)
+            print(bcolors.OKCYAN+data+bcolors.ENDC)
         data = sock.recv(BUFFER_SIZE)
         if data != "":
             data = str(data, TXT_ENCODING)
-            print(data)
+            print(bcolors.BOLD+data+bcolors.ENDC)
     except Exception as e:
         print(e)
     pass
