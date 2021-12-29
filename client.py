@@ -10,8 +10,8 @@ import getch
 from socket import *
 import time
 import select
-
-TEAMNAME = 'IN'
+LISTENUDPIP = ''
+TEAMNAME = 'TheTrainGuy'
 TXT_ENCODING = 'utf-8'
 NUM_ENCODING = "little"
 CLIENT_STARTED_MSG = 'Client started, listening for offer requests...'
@@ -41,7 +41,7 @@ def looking_for_server_state():
     try:
         s = socket(AF_INET, SOCK_DGRAM)
         s.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        s.bind(('', UDP_PORT))
+        s.bind((LISTENUDPIP, UDP_PORT))
         m = s.recvfrom(BUFFER_SIZE)
         receivedbytes = m[0]
         cookie = receivedbytes[0:4]
@@ -93,10 +93,14 @@ def multi_gamemode_downloaddata(sock):
             data = str(data, TXT_ENCODING)
             print(bcolors.OKCYAN+data+bcolors.ENDC)
         data = sock.recv(BUFFER_SIZE)
-        if data != "":
+        if data != '':
             data = str(data, TXT_ENCODING)
-            print(bcolors.BOLD+data+bcolors.ENDC)
+            if(data == ''):
+                print(bcolors.FAIL+'Server had been disconnceted'+bcolors.ENDC)
+            else:
+                print(bcolors.BOLD+data+bcolors.ENDC)
     except Exception as e:
+        print(bcolors.FAIL+'Server had been disconnceted'+bcolors.ENDC)
         print(e)
     pass
 
