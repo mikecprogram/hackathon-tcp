@@ -9,6 +9,8 @@ import time
 from multiprocessing import *
 import select
 
+records = []
+
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -19,16 +21,39 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
+    YELLOW = '\033[33m'
+MSG_NOANSWER = bcolors.FAIL+'No one answered!'+bcolors.ENDC
+MSG_CORRECT = bcolors.YELLOW+'{} was correct! -> {}'+bcolors.ENDC
+MSG_WRONG = bcolors.FAIL+'{} was wrong.. -> {}'+bcolors.ENDC
+COOKIE = 0xabcddcba
+OP_OFFER = 0x02
+# question pool chhose one randomly
 def getQA():
-    var = [("How much is 2 + 2?", "4"), ("How much is 2 + 3?", "5"),
-           ("How much is square root of 9?", "3"),("How much is square root of 81?", "9"),
-           ("How much blonde women you need to change a light bolb", "1"),
-           ("How much is 2 + 2 - 1?", "3"),("How much is 9 square of 0?", "1")]
+    var = [('If there are four apples and you take away three, how many do you have?', '3'),
+           (
+               'A 300 ft. train is traveling 300 ft. per minute must travel through a 300 ft. long tunnel. How long '
+               'will it take the train to travel through the tunnel?(in minutes)', '2'),
+           ('How much is square root of 9?', '3'),
+           ('How much is square root of 81?', '9'),
+           ('How much blonde women you need to change a light bolb', '1'),
+           ('How much is 2 + 2 - 1?', '3'),
+           (
+               'A grandmother, two mothers, and two daughters went to a baseball game together and bought one ticket '
+               'each. How many tickets did they buy in total?',
+               '3'),
+           ('The six digit number 54321A is divisible by 9 where A is a single digit whole number. Find A', '3'),
+           (
+               'Choose a number from 1 to 20. Double it, add 10, divide by 2, and then subtract the number you '
+               'started with',
+               '5'),
+           (
+               'A farmer has 19 sheep on his land. One day, a big storm hits, all but seven ran away. How many '
+               'sheep does the farmer have now?',
+               '7')]
     value = randint(0, len(var) - 1)
     return var[value]
 
-
+# opens tcp connection to receive accepts
 def opentcpcon():
     try:
         s_tcp1 = socket(AF_INET, SOCK_STREAM)
@@ -37,13 +62,12 @@ def opentcpcon():
         s_tcp1.listen(2)
         SIGN_PORT = s_tcp1.getsockname()[1]
         return SIGN_PORT, s_tcp1
-    except Exception as e:
-        print(e)
+    except Exception as ex:
+        print(ex)
         return -1, -1
 
-#use struct.pack(strFormat,0xabcddbca,0x02,
+
 def MODE_OFFER():
-    
     UDP_PORT = 13117
     port1 = -1
     tcp_1 = socket(AF_INET, SOCK_STREAM)
@@ -52,48 +76,47 @@ def MODE_OFFER():
     UDP_IP = gethostbyname(hostname)
     conn1 = 0
     conn2 = 0
-    name1 = 'n1'
-    name2 = 'n2'
-    struct.pack('lci',0xabcddcba,b'\x02',port1)
+    name1 = ''
+    name2 = ''
     try:
         s_udp = socket(AF_INET, SOCK_DGRAM)
-        print(f'Server started, listening on IP address {UDP_IP} port {port1}')
+        print(bcolors.HEADER+ f'Server started, listening on IP address {UDP_IP} port {port1}'+bcolors.ENDC)
         s_udp.setsockopt(SOL_SOCKET, SO_BROADCAST, 1)
         # PORT_TO_SEND = port1.to_bytes(2, 'little')
         # SEND_PACKET = b'\xab\xcd' + b'\xdc\xba\x02' + PORT_TO_SEND
         while True:
-            s_udp.sendto(struct.pack('lci',0xabcddcba,b'\x02',port1), ('255.255.255.255', UDP_PORT))
-            try:#Try to connect to a player, if no players are seen - exception and keep on posting udp
+            s_udp.sendto(struct.pack('IbH',COOKIE,OP_OFFER, port1), ('255.255.255.255', UDP_PORT))
+            try:  # Try to connect to a player, if no players are seen - exception and keep on posting udp
                 (conn, addr) = tcp_1.accept()
                 if conn1 == 0:
                     conn1 = conn
-                    print("player 1 connected")
                     name1 = str(get_input_from_player(conn1), 'utf-8')
+                    print(bcolors.OKGREEN+'player 1 connected'+bcolors.ENDC)
                 elif conn2 == 0:
-                    try: #try to read from client1
+                    try:  # try to read from client1
                         conn1.setblocking(0)
                         data = conn1.recv(1024)
-                        conn1.setblocking(1)
-                        #if success reading: client notified us about its death
-                        print('player 1 disconnected')
+                        # if success reading: client notified us about its death
+                        print(bcolors.FAIL+'player 1 disconnected'+bcolors.ENDC)
                         conn1 = conn
-                        print("player 1 connected")
+                        print(bcolors.OKGREEN+'player 1 connected'+bcolors.ENDC)
                         name1 = str(get_input_from_player(conn1), 'utf-8')
-                    except:#if exception: client is alive, and did not say anything
+                    except:  # if exception: client is alive, and did not say anything
+                        conn1.setblocking(1)
                         conn2 = conn
-                        print("player 2 connected")
+                        print(bcolors.OKGREEN+'player 2 connected'+bcolors.ENDC)
                         name2 = str(get_input_from_player(conn2), 'utf-8')
                         s_udp.close()
                         gamemode(conn1, conn2, name1, name2)
-                        #tcp_1.close()
+                        # tcp_1.close()
                         break
-                    
-                    
+
+
             except Exception as e:
                 time.sleep(1)
 
     except Exception as e:
-        print(bcolors.FAIL+'Oh no! Something went wrong while trying to connect to one of the players \n')
+        print(bcolors.FAIL + 'Oh no! Something went wrong while trying to connect to one of the players \n')
         print(e)
         print(bcolors.ENDC)
     MODE_OFFER()
@@ -103,70 +126,108 @@ def get_input_from_player(t):
     try:
         return t.recv(1024)
     except:
-        return ""
+        return ''
 
-def tcpreadfromplayer(tcpsocket,pipe,player):
+def tcpreadfromplayer(tcpsocket, pipe, player):
     try:
-        data = tcpsocket.recv(1024)
-        data = str(data, 'utf-8')
-        pipe.send([player,data])
+        while True:
+            data = tcpsocket.recv(1024)
+            data = str(data, 'utf-8')
+            pipe.send(data)
     except:
         pass
 
+# main game plan
 def gamemode(t1, t2, name1, name2):
+    global records
     r1, w1 = Pipe(duplex=False)
     r2, w2 = Pipe(duplex=False)
-    #TODO remove this: time.sleep(10)
+    # TODO remove this: time.sleep(10)
     (problem, ans) = getQA()
-    winner = "draw"
+    winner = 'draw'
     welcome_message = f'Welcome to Quick Maths.  \nPlayer 1: {name1} \nPlayer 2: {name2} \n== \nPlease answer the ' \
                       f'following question as fast as you can: '
-    problem = welcome_message + " " + problem
+    problem = welcome_message + ' ' + problem
     t1.send(bytes(problem, 'utf-8'))
     t2.send(bytes(problem, 'utf-8'))
-    #read from each client
-    cli1 = Process(target=tcpreadfromplayer, args=(t1,w1,'player1',))
-    cli2 = Process(target=tcpreadfromplayer, args=(t2,w2,'player2',))
-    cli1.start()
+    # read from each client
+    cli1 = Process(target=tcpreadfromplayer, args=(t1, w1, name1,))
+    cli2 = Process(target=tcpreadfromplayer, args=(t2, w2, name2,))
     cli2.start()
+    cli1.start()
 
-    i, o, e = select.select( [r1,r2], [], [], 10 )
+    i, o, e = select.select([r1,r2], [], [], 10)
 
-    p1ans ='.'
-    p2ans ='.'
+    p1ans = '.'
+    p2ans = '.'
 
     if (i):
         if r1.poll():
-            p1ans= r1.recv()
-            print(f'player1 answered {p1ans}')
+            p1ans = r1.recv()
         elif r2.poll():
-            p2ans= r2.recv()
-            print(f'player2 answered {p2ans}')
+            p2ans = r2.recv()
     else:
-        print('No one answered!')
-    #now after 10 seconds pass or two players finished to send their answers :
-    w1.close()
-    w2.close()
-    r1.close()
-    r2.close()
+        print(MSG_NOANSWER)
+    # now after 10 seconds pass or two players finished to send their answers :
+    # w1.close()
+    # w2.close()
+    # r1.close()
+    # r2.close()
     cli1.terminate()
     cli2.terminate()
-    
+
     if p1ans == ans:
+        print(MSG_CORRECT.format(name1,p1ans))
         winner = name1
     elif p2ans == ans:
+        print(MSG_CORRECT.format(name2,p2ans))
         winner = name2
-    elif p1ans != "":
+    elif p1ans != '':
         winner = name2
-    elif p2ans != "":
+        print(MSG_WRONG.format(name1,p1ans))
+    elif p2ans != '':
         winner = name1
-    
+        print(MSG_WRONG.format(name2,p2ans))
+
     end_message = f'Game over! \nThe correct answer was {ans}! \nCongratulations to the winner: {winner}'
     t1.send(bytes(end_message, 'utf-8'))
     t2.send(bytes(end_message, 'utf-8'))
     t1.close()
     t2.close()
-    print("“Game over,\n sending out offerrequests...”")
+    # adding to records
+    if winner != 'draw':
+        foundwin = False
+        for r in records:
+            if r[0] == winner:
+                foundwin = True
+                r[1] = r[1] + 1
+        if not foundwin:
+            records.append([winner, 1])
+        loser = ''
+        if winner == name1:
+            loser = name2
+        else:
+            loser = name1
+        foundlose = False
+        for r in records:
+            if r[0] == loser:
+                foundlose = True
+                r[1] = r[1] + 0
+        if not foundlose:
+            records.append([loser, 0])
+        # printing the group with the most wins in the server
+        bestis = 'no'
+        score = -1
+        for r in records:
+            if r[1] > score:
+                score = r[1]
+                bestis = r[0]
+            elif r[1] == score:
+                bestis = 'Tied'
+        print(
+            bcolors.OKBLUE + f'The group with the most wins in the server is {bestis} with the score of {score}' + bcolors.ENDC)
+
+    print(bcolors.OKCYAN + 'Game over,\nsending out offer requests...' + bcolors.ENDC)
     MODE_OFFER()
 
 
