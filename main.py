@@ -11,7 +11,6 @@ import select
 
 records = []
 
-
 class bcolors:
     HEADER = '\033[95m'
     OKBLUE = '\033[94m'
@@ -22,7 +21,12 @@ class bcolors:
     ENDC = '\033[0m'
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
-
+    YELLOW = '\033[33m'
+MSG_NOANSWER = bcolors.FAIL+'No one answered!'+bcolors.ENDC
+MSG_CORRECT = bcolors.YELLOW+'{} was correct! -> {}'+bcolors.ENDC
+MSG_WRONG = bcolors.FAIL+'{} was wrong.. -> {}'+bcolors.ENDC
+COOKIE = 0xabcddcba
+OP_OFFER = 0x02
 # question pool chhose one randomly
 def getQA():
     var = [('If there are four apples and you take away three, how many do you have?', '3'),
@@ -43,8 +47,8 @@ def getQA():
                'started with',
                '5'),
            (
-               'A farmer has 19 sheep on his land. One day, a big storm hits, and all but seven run away. How many '
-               'sheep does the farmer have left?',
+               'A farmer has 19 sheep on his land. One day, a big storm hits, all but seven ran away. How many '
+               'sheep does the farmer have now?',
                '7')]
     value = randint(0, len(var) - 1)
     return var[value]
@@ -72,9 +76,8 @@ def MODE_OFFER():
     UDP_IP = gethostbyname(hostname)
     conn1 = 0
     conn2 = 0
-    name1 = 'n1'
-    name2 = 'n2'
-    struct.pack('lci', 0xabcddcba, b'\x02', port1)
+    name1 = ''
+    name2 = ''
     try:
         s_udp = socket(AF_INET, SOCK_DGRAM)
         print(bcolors.HEADER+ f'Server started, listening on IP address {UDP_IP} port {port1}'+bcolors.ENDC)
@@ -82,24 +85,24 @@ def MODE_OFFER():
         # PORT_TO_SEND = port1.to_bytes(2, 'little')
         # SEND_PACKET = b'\xab\xcd' + b'\xdc\xba\x02' + PORT_TO_SEND
         while True:
-            s_udp.sendto(struct.pack('IbH', 0xabcddcba, 0x02, port1), ('255.255.255.255', UDP_PORT))
+            s_udp.sendto(struct.pack('IbH',COOKIE,OP_OFFER, port1), ('255.255.255.255', UDP_PORT))
             try:  # Try to connect to a player, if no players are seen - exception and keep on posting udp
                 (conn, addr) = tcp_1.accept()
                 if conn1 == 0:
                     conn1 = conn
-                    print(bcolors.OKGREEN+'player 1 connected'+bcolors.ENDC)
                     name1 = str(get_input_from_player(conn1), 'utf-8')
+                    print(bcolors.OKGREEN+'player 1 connected'+bcolors.ENDC)
                 elif conn2 == 0:
                     try:  # try to read from client1
                         conn1.setblocking(0)
                         data = conn1.recv(1024)
-                        conn1.setblocking(1)
                         # if success reading: client notified us about its death
                         print(bcolors.FAIL+'player 1 disconnected'+bcolors.ENDC)
                         conn1 = conn
                         print(bcolors.OKGREEN+'player 1 connected'+bcolors.ENDC)
                         name1 = str(get_input_from_player(conn1), 'utf-8')
                     except:  # if exception: client is alive, and did not say anything
+                        conn1.setblocking(1)
                         conn2 = conn
                         print(bcolors.OKGREEN+'player 2 connected'+bcolors.ENDC)
                         name2 = str(get_input_from_player(conn2), 'utf-8')
@@ -125,19 +128,18 @@ def get_input_from_player(t):
     except:
         return ''
 
-
 def tcpreadfromplayer(tcpsocket, pipe, player):
     try:
-        data = tcpsocket.recv(1024)
-        data = str(data, 'utf-8')
-        pipe.send([player, data])
+        while True:
+            data = tcpsocket.recv(1024)
+            data = str(data, 'utf-8')
+            pipe.send(data)
     except:
         pass
 
 # main game plan
 def gamemode(t1, t2, name1, name2):
     global records
-
     r1, w1 = Pipe(duplex=False)
     r2, w2 = Pipe(duplex=False)
     # TODO remove this: time.sleep(10)
@@ -149,12 +151,12 @@ def gamemode(t1, t2, name1, name2):
     t1.send(bytes(problem, 'utf-8'))
     t2.send(bytes(problem, 'utf-8'))
     # read from each client
-    cli1 = Process(target=tcpreadfromplayer, args=(t1, w1, 'player1',))
-    cli2 = Process(target=tcpreadfromplayer, args=(t2, w2, 'player2',))
-    cli1.start()
+    cli1 = Process(target=tcpreadfromplayer, args=(t1, w1, name1,))
+    cli2 = Process(target=tcpreadfromplayer, args=(t2, w2, name2,))
     cli2.start()
+    cli1.start()
 
-    i, o, e = select.select([r1, r2], [], [], 10)
+    i, o, e = select.select([r1,r2], [], [], 10)
 
     p1ans = '.'
     p2ans = '.'
@@ -162,28 +164,30 @@ def gamemode(t1, t2, name1, name2):
     if (i):
         if r1.poll():
             p1ans = r1.recv()
-            print(f'player1 answered {p1ans}')
         elif r2.poll():
             p2ans = r2.recv()
-            print(f'player2 answered {p2ans}')
     else:
-        print('No one answered!')
+        print(MSG_NOANSWER)
     # now after 10 seconds pass or two players finished to send their answers :
-    w1.close()
-    w2.close()
-    r1.close()
-    r2.close()
+    # w1.close()
+    # w2.close()
+    # r1.close()
+    # r2.close()
     cli1.terminate()
     cli2.terminate()
 
     if p1ans == ans:
+        print(MSG_CORRECT.format(name1,p1ans))
         winner = name1
     elif p2ans == ans:
+        print(MSG_CORRECT.format(name2,p2ans))
         winner = name2
     elif p1ans != '':
         winner = name2
+        print(MSG_WRONG.format(name1,p1ans))
     elif p2ans != '':
         winner = name1
+        print(MSG_WRONG.format(name2,p2ans))
 
     end_message = f'Game over! \nThe correct answer was {ans}! \nCongratulations to the winner: {winner}'
     t1.send(bytes(end_message, 'utf-8'))
@@ -194,23 +198,23 @@ def gamemode(t1, t2, name1, name2):
     if winner != 'draw':
         foundwin = False
         for r in records:
-            if r[0] is winner:
+            if r[0] == winner:
                 foundwin = True
                 r[1] = r[1] + 1
         if not foundwin:
-            records.append((winner, 1))
+            records.append([winner, 1])
         loser = ''
-        if winner is name1:
+        if winner == name1:
             loser = name2
         else:
             loser = name1
         foundlose = False
         for r in records:
-            if r[0] is loser:
+            if r[0] == loser:
                 foundlose = True
                 r[1] = r[1] + 0
         if not foundlose:
-            records.append((loser, 0))
+            records.append([loser, 0])
         # printing the group with the most wins in the server
         bestis = 'no'
         score = -1
@@ -218,12 +222,12 @@ def gamemode(t1, t2, name1, name2):
             if r[1] > score:
                 score = r[1]
                 bestis = r[0]
-            elif r[1] is score:
+            elif r[1] == score:
                 bestis = 'Tied'
         print(
             bcolors.OKBLUE + f'The group with the most wins in the server is {bestis} with the score of {score}' + bcolors.ENDC)
 
-    print(bcolors.OKCYAN + 'Game over,\n sending out offerrequests...' + bcolors.ENDC)
+    print(bcolors.OKCYAN + 'Game over,\nsending out offer requests...' + bcolors.ENDC)
     MODE_OFFER()
 
 

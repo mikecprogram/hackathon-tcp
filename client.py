@@ -15,7 +15,7 @@ TEAMNAME = 'IN'
 TXT_ENCODING = 'utf-8'
 NUM_ENCODING = "little"
 CLIENT_STARTED_MSG = 'Client started, listening for offer requests...'
-RCVD_OFFER_MSG = 'Received offer from {},\nattempting to connect...'
+RCVD_OFFER_MSG = 'Received offer from {} : {},\nattempting to connect...'
 IMPOSTER_OFFER_MSG = 'An imposter server ({})tried to connect, but it had failed.'
 FAILED_TO_CONNECT_MSG = 'Failed to connect'
 MAGIC_COOKIE = b'\xba\xdc\xcd\xab'
@@ -50,7 +50,7 @@ def looking_for_server_state():
         (port,) = struct.unpack('H',portbytes)
         serverip = m[1][0]
         if (cookie == MAGIC_COOKIE) & (op == MSG_TYPE_OFFER):
-            print(bcolors.OKGREEN+RCVD_OFFER_MSG.format(serverip)+bcolors.ENDC)
+            print(bcolors.OKGREEN+RCVD_OFFER_MSG.format(serverip,port)+bcolors.ENDC)
             return serverip, port
         else:
             hexadecimal_string = receivedbytes.hex()
@@ -103,8 +103,6 @@ def multi_gamemode_downloaddata(sock):
 
 def theloop(pipe):
     (serverip, port) = looking_for_server_state()
-    print(serverip)
-    print(port)
     tcpsocket = connect_to_server_state(serverip, port)
     if tcpsocket == None:
         print(bcolors.WARNING + FAILED_TO_CONNECT_MSG+bcolors.ENDC)
