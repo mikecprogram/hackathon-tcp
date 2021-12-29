@@ -21,10 +21,16 @@ class bcolors:
     UNDERLINE = '\033[4m'
 
 def getQA():
-    var = [("How much is 2 + 2?", "4"), ("How much is 2 + 3?", "5"),
-           ("How much is square root of 9?", "3"),("How much is square root of 81?", "9"),
+    var = [("If there are four apples and you take away three, how many do you have?", "3"),
+           (" A 300 ft. train is traveling 300 ft. per minute must travel through a 300 ft. long tunnel. How long will it take the train to travel through the tunnel?(in minutes)", "2"),
+           ("How much is square root of 9?", "3"),
+           ("How much is square root of 81?", "9"),
            ("How much blonde women you need to change a light bolb", "1"),
-           ("How much is 2 + 2 - 1?", "3"),("How much is 9 square of 0?", "1")]
+           ("How much is 2 + 2 - 1?", "3"),
+           (" A grandmother, two mothers, and two daughters went to a baseball game together and bought one ticket each. How many tickets did they buy in total?", "3"),
+           ("The six digit number 54321A is divisible by 9 where A is a single digit whole number. Find A", "3"),
+           ("Choose a number from 1 to 20. Double it, add 10, divide by 2, and then subtract the number you started with", "5"),
+           (" A farmer has 19 sheep on his land. One day, a big storm hits, and all but seven run away. How many sheep does the farmer have left?", "7")]
     value = randint(0, len(var) - 1)
     return var[value]
 
