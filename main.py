@@ -82,7 +82,7 @@ def MODE_OFFER():
         # PORT_TO_SEND = port1.to_bytes(2, 'little')
         # SEND_PACKET = b'\xab\xcd' + b'\xdc\xba\x02' + PORT_TO_SEND
         while True:
-            s_udp.sendto(struct.pack('lci', 0xabcddcba, b'\x02', port1), ('255.255.255.255', UDP_PORT))
+            s_udp.sendto(struct.pack('IbH', 0xabcddcba, 0x02, port1), ('255.255.255.255', UDP_PORT))
             try:  # Try to connect to a player, if no players are seen - exception and keep on posting udp
                 (conn, addr) = tcp_1.accept()
                 if conn1 == 0:
