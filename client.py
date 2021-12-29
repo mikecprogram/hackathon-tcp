@@ -49,6 +49,7 @@ def looking_for_server_state():
         portbytes = receivedbytes[6:8]
         (port,) = struct.unpack('H',portbytes)
         serverip = m[1][0]
+
         if (cookie == MAGIC_COOKIE) & (op == MSG_TYPE_OFFER):
             print(bcolors.OKGREEN+RCVD_OFFER_MSG.format(serverip,port)+bcolors.ENDC)
             return serverip, port
@@ -110,7 +111,7 @@ def theloop(pipe):
     tcpsocket = connect_to_server_state(serverip, port)
     if tcpsocket == None:
         print(bcolors.WARNING + FAILED_TO_CONNECT_MSG+bcolors.ENDC)
-        theloop(pipe)
+        pass
     else:
         #first, lets flush away all data from the "getch" pipe
         if pipe.poll():
@@ -123,7 +124,7 @@ def theloop(pipe):
         uploading.start()
         downloading.join()
         uploading.kill()
-        theloop(pipe)
+        pass
 
 def getchfun(pipe):
     try:
@@ -139,5 +140,6 @@ if __name__ == '__main__':
     r1, w1 = Pipe(duplex=False)
     getchproc = Process(target=getchfun,args=(w1,))
     getchproc.start()
-    theloop(r1)
+    while True:
+        theloop(r1)
 
