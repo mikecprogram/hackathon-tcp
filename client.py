@@ -18,8 +18,8 @@ CLIENT_STARTED_MSG = 'Client started, listening for offer requests...'
 RCVD_OFFER_MSG = 'Received offer from {},\nattempting to connect...'
 IMPOSTER_OFFER_MSG = 'An imposter server ({})tried to connect, but it had failed.'
 FAILED_TO_CONNECT_MSG = 'Failed to connect'
-MAGIC_COOKIE = 0xabcddcba
-MSG_TYPE_OFFER = b'\x02'
+MAGIC_COOKIE = b'\xba\xdc\xcd\xab'
+MSG_TYPE_OFFER = 0x02
 BUFFER_SIZE = 1024
 UDP_PORT = 13117
 
@@ -44,7 +44,10 @@ def looking_for_server_state():
         s.bind(('', UDP_PORT))
         m = s.recvfrom(BUFFER_SIZE)
         receivedbytes = m[0]
-        cookie, op, port = struct.unpack('lci', receivedbytes)
+        cookie = receivedbytes[0:4]
+        op = receivedbytes[4]
+        portbytes = receivedbytes[6:8]
+        (port,) = struct.unpack('H',portbytes)
         serverip = m[1][0]
         if (cookie == MAGIC_COOKIE) & (op == MSG_TYPE_OFFER):
             print(bcolors.OKGREEN+RCVD_OFFER_MSG.format(serverip)+bcolors.ENDC)
@@ -73,10 +76,11 @@ def connect_to_server_state(serverip, port):
 def multi_gamemode_senddata(sock,pipe):
     try:
         i, _, _ = select.select( [pipe], [], [])
-        if(i):
-            data = pipe.recv()
-            print(bcolors.BOLD+data+bcolors.ENDC)
-            sock.send(data.encode(TXT_ENCODING))
+        while True:
+            if(i):
+                data = pipe.recv()
+                print(bcolors.BOLD+data+bcolors.ENDC)
+                sock.send(data.encode(TXT_ENCODING))
     except Exception as e:
         print(e)
     pass
@@ -106,6 +110,10 @@ def theloop(pipe):
         print(bcolors.WARNING + FAILED_TO_CONNECT_MSG+bcolors.ENDC)
         theloop(pipe)
     else:
+        #first, lets flush away all data from the "getch" pipe
+        if pipe.poll():
+            pipe.recv()
+        #send the name
         tcpsocket.send(bytes(TEAMNAME, TXT_ENCODING))
         downloading = Process(target=multi_gamemode_downloaddata, args=(tcpsocket,))
         uploading = Process(target=multi_gamemode_senddata, args=(tcpsocket,pipe,))
@@ -131,4 +139,3 @@ if __name__ == '__main__':
     getchproc.start()
     theloop(r1)
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
